@@ -15,6 +15,7 @@
                              (next (drop-while #(not= \space %) msg)) ; everything but the prefix
                              msg)))) ; else the whole message
 
+
 (defn split-trailing [msg]
   (str/split #" :" (apply str (next msg))))
 
@@ -25,10 +26,12 @@
                    (str/split #" " line))]
     (concat args (if (nil? trailing)
                    '()
-                   (list (str ":" trailing))))))
+                   (list (extract-trailing msg))))))
+
 
 (defn extract-trailing [msg]
-  (second (split-trailing msg)))
+  (apply str (drop-while #(not= % \:) (next msg))))
+
 
 (defn extract-username [msg]
   (let [prefix (extract-prefix msg)]

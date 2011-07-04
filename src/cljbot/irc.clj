@@ -60,3 +60,4 @@
   "Quit the IRC session."
   (write-msg connection (assoc blank-msg
                           :command "QUIT")))
+
