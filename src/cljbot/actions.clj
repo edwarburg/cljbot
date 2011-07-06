@@ -6,27 +6,23 @@
 (def *response-args* '[connection msg client-info])
 
 (defn extract-fn-sym [msg]
-  (symbol (str "on-"
-               (clojure.contrib.string/lower-case
-                (str (:command msg))))))
+  (symbol (:command msg)))
 
 (defn on-msg-dispatch [msg args]
-   (let [sym (extract-fn-sym msg)
-         callback (ns-resolve cljbot.actions/*response-ns* sym)]
-     (if (not (nil? callback))
-       (apply callback args)
-       nil)))
+  (let [sym (extract-fn-sym msg)
+        callback (ns-resolve *response-ns* sym)]
+    (if (not (nil? callback))
+      (apply callback args)
+      nil)))
 
 (defmacro def-response [name & body]
-  (let [sym (symbol (str "on-" (clojure.contrib.string/lower-case (str name))))]
+  (let [sym (symbol name)]
     `(intern cljbot.actions/*response-ns*
              '~sym
-             (with-meta (fn ~*response-args*
-                          ~@body)
-               {:ns cljbot.actions/*response-ns*
-                :name '~sym}))))
+             (fn ~*response-args*
+               ~@body))))
 
-
+             
 (def-response PING
   (pong connection msg))
   

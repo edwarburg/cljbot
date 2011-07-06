@@ -19,6 +19,11 @@
 (defn split-trailing [msg]
   (str/split #" :" (apply str (next msg))))
 
+
+(defn extract-trailing [msg]
+  (apply str (drop-while #(not= % \:) (next msg))))
+
+
 (defn extract-args [msg]
   "Extract the arguments of a valid IRC message."
   (let [[line trailing]  (split-trailing msg)
@@ -27,10 +32,6 @@
     (concat args (if (nil? trailing)
                    '()
                    (list (extract-trailing msg))))))
-
-
-(defn extract-trailing [msg]
-  (apply str (drop-while #(not= % \:) (next msg))))
 
 
 (defn extract-username [msg]
