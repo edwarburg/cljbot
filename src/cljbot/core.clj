@@ -16,8 +16,9 @@
 (declare make-connection)
 (declare bot-loop)
 
-(defn connect [server client-info]
+(defn connect 
   "Connect to a server, log in, and join a channel."
+  [server client-info]
   (let [conn (make-connection server)
         user (:user client-info)
         channel (:channel client-info)]
@@ -27,8 +28,9 @@
     conn))
 
 
-(defn make-connection [server]
+(defn make-connection 
   "Make a connection to the server."
+  [server]
   (let [socket (Socket. (:host server) (:port server))
         in (BufferedReader. (InputStreamReader. (.getInputStream socket)))
         out (PrintWriter. (.getOutputStream socket))
@@ -36,8 +38,9 @@
     conn))
 
 
-(defn bot-loop [connection client-info]
+(defn bot-loop 
   "The main bot loop: Take a command, respond to it, and log it."
+  [connection client-info]
   (binding [*out* (writer ".bot.log")
             *err* *out*]
     (try
