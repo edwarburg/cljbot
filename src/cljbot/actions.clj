@@ -2,49 +2,37 @@
   (:use [cljbot.messages :as msgs]
         [cljbot.irc]))
 
-(def *response-ns*  (create-ns 'cljbot.actions.actions))
-(def *response-args* '[connection msg client-info])
+(defmulti handle-msg (fn [args] (-> args :msg :command)))
 
-(defn extract-fn-sym [msg]
-  (symbol (:command msg)))
+(defmethod handle-msg :default [args]
+  nil)
 
-(defn on-msg-dispatch [msg args]
-  (let [sym (extract-fn-sym msg)
-        callback (ns-resolve *response-ns* sym)]
-    (if (not (nil? callback))
-      (apply callback args)
-      nil)))
+(defmacro def-response [name args & body]
+  `(defmethod handle-msg ~name ~args
+     ~@body))
 
-(defmacro def-response [name & body]
-  (let [sym (symbol name)]
-    `(intern cljbot.actions/*response-ns*
-             '~sym
-             (fn ~*response-args*
-               ~@body))))
-
-             
-(def-response PING
-  (pong connection msg))
+(def-response "PING" [args]
+  (pong (:conn args) (:msg args)))
   
 
-(def-response JOIN
-  (let [my-nick (-> client-info :user :nick)
-        other-nick (-> msg :prefix msgs/extract-username)
-        channel (:channel client-info)]
+(def-response "JOIN" [args]
+  (let [my-nick (-> args :client-info :user :nick)
+        other-nick (-> args :msg :prefix msgs/extract-username)
+        channel (-> args :client-info :channel)]
     (if (not= my-nick other-nick)
-      (say connection channel (str "hello, " other-nick)))))
+      (say (:conn args) channel (str "hello, " other-nick)))))
 
 
-(def-response PRIVMSG
-  (let [my-nick (-> client-info :user :nick)
-        other-nick (-> msg :prefix msgs/extract-username)
-        target (first (:args msg))
-        text (last (:args msg))
+(def-response "PRIVMSG" [args]
+  (let [my-nick (-> args :client-info :user :nick)
+        other-nick (-> args :msg :prefix msgs/extract-username)
+        target (first (-> args :msg :args))
+        text (last (-> args :msg :args))
         front (apply str (next (take (inc (count my-nick)) text)))]
     (if (= front my-nick)
-      (say connection target (str other-nick ":"
+      (say (:conn args) target (str other-nick ":"
                                   (apply str (drop (+ 2 (count my-nick)) text)))))))
 
 
-(def-response ERROR
-   (quit connection))
+(def-response "ERROR" [args]
+   (quit (:conn args)))

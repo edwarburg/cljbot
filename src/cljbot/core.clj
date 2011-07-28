@@ -38,6 +38,16 @@
     conn))
 
 
+(defn handle-next-msg [connection client-info]
+  (let [msg (.readLine (:in @connection))]
+    (when (not (nil? msg))
+      (println  msg)
+      (let [args {:msg (msgs/str->msg msg)
+                  :conn connection
+                  :client-info client-info}]
+        (cljbot.actions/handle-msg args)))))
+
+
 (defn bot-loop 
   "The main bot loop: Take a command, respond to it, and log it."
   [connection client-info]
@@ -45,12 +55,8 @@
             *err* *out*]
     (try
       (loop []
-        (let [msg (.readLine (:in @connection))]
-          (when (not (nil? msg))
-            (println  msg)
-            (on-msg-dispatch (msgs/str->msg msg)
-                             (list connection (msgs/str->msg msg) client-info))
-            (recur))))
+        (handle-next-msg connection client-info)
+        (recur))
       (catch Exception e
         (println "------ Exception ------")
         (print-stack-trace e)
@@ -73,4 +79,4 @@
 ; Examples, in normal usage you'd def these at the REPL and call
 ; (def connection (connect some-server some-client-info))
 (def freenode (make-server "irc.freenode.net" 6667))
-(def ci {:channel "#ufpc" :user (make-user "cljbot")})
+(def ci {:channel "#cljbot" :user (make-user "cljbot")})

@@ -37,8 +37,8 @@
   "Send a JOIN message."
   [connection channel]
   (write-msg connection (assoc blank-msg
-                               :command "JOIN"
-                               :args (list channel))))
+                          :command "JOIN"
+                          :args (list channel))))
 
 (defn part 
   "Sends a PART message."
