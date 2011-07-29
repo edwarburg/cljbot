@@ -18,7 +18,7 @@
 (def-response "JOIN" [args]
   (let [my-nick (-> args :client-info :user :nick)
         other-nick (-> args :msg :prefix msgs/extract-username)
-        channel (-> args :client-info :channel)]
+        channel (apply str (next (last (-> args :msg :args))))]
     (if (not= my-nick other-nick)
       (say (:conn args) channel (str "hello, " other-nick)))))
 
@@ -26,12 +26,23 @@
 (def-response "PRIVMSG" [args]
   (let [my-nick (-> args :client-info :user :nick)
         other-nick (-> args :msg :prefix msgs/extract-username)
-        target (first (-> args :msg :args))
+        pm-source (first (-> args :msg :args))
         text (last (-> args :msg :args))
-        front (apply str (next (take (inc (count my-nick)) text)))]
-    (if (= front my-nick)
-      (say (:conn args) target (str other-nick ":"
-                                  (apply str (drop (+ 2 (count my-nick)) text)))))))
+        front (apply str (next (take (inc (count my-nick)) text)))
+        mimic-text (apply str (drop (+ 2 (count my-nick)) text))]
+    (condp = my-nick
+      ; this is a /msg
+      pm-source (do
+                  (println "PM from:" other-nick)
+                  (when (not= other-nick my-nick) ; refuse to get in PM war with yourself
+                    (say (:conn args)
+                         other-nick
+                         (apply str (next text)))))
+      ; we've been pinged (ie, someone says 'cljbot: foo')
+      front (say (:conn args)
+                 pm-source
+                 (str other-nick ":" mimic-text))
+      nil)))
 
 
 (def-response "ERROR" [args]
