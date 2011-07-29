@@ -5,13 +5,15 @@
         [cljbot.addons]
         [clojure.stacktrace]
         [clojure.contrib.duck-streams :only (writer)])
-  (:import (java.net Socket)
+  (:import (java.net Socket
+                     SocketException)
            (java.io PrintWriter
                     InputStreamReader
                     BufferedReader
                     PrintStream
                     BufferedOutputStream
-                    FileOutputStream)))
+                    FileOutputStream
+                    InterruptedIOException)))
 
 (declare make-connection)
 (declare bot-loop)
@@ -24,7 +26,10 @@
         channel (:channel client-info)]
     (login conn user)
     (join conn channel)
-    (doto (Thread. #(bot-loop conn client-info)) (.start))
+    (dosync (alter conn
+                   merge
+                   {:thread (Thread. #(bot-loop conn client-info))}))
+    (.start (:thread @conn))
     conn))
 
 
@@ -36,6 +41,19 @@
         out (PrintWriter. (.getOutputStream socket))
         conn (ref {:socket socket :in in :out out})]
     conn))
+
+
+(defn clean-up [connection]
+  (println ">>> Closing socket...")
+  (.close (:socket @connection))
+  (println ">>> Interrupting bot-loop...")
+  (.interrupt (:thread @connection)))
+
+
+(defn all-done [connection]
+  (quit connection)
+  (clean-up connection)
+  (println "\n\n\n>>> Successfully quit."))
 
 
 (defn handle-next-msg [connection client-info]
@@ -57,12 +75,16 @@
       (loop []
         (handle-next-msg connection client-info)
         (recur))
+      (catch InterruptedIOException e
+        (println ">>> Interrupted"))
+      (catch SocketException e
+        (println ">>> Failed to read: Socket closed"))
       (catch Exception e
-        (println "------ Exception ------")
+        (println ">>> ------ Exception ------")
         (print-stack-trace e)
-        (println "------    end    ------"))
+        (println ">>> ------    end    ------"))
       (finally
-       (quit connection)))))
+       (all-done connection)))))
 
 
 (defn make-server [host port]
