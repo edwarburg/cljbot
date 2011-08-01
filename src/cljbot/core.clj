@@ -78,7 +78,7 @@
       (catch InterruptedIOException e
         (println ">>> Interrupted"))
       (catch SocketException e
-        (println ">>> Failed to read: Socket closed"))
+        (println ">>> Failed to read:" (.getMessage e)))
       (catch Exception e
         (println ">>> ------ Exception ------")
         (print-stack-trace e)
