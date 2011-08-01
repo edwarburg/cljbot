@@ -5,12 +5,15 @@ Aug 1 2011
 
 messages.clj is in need of a rewrite.
 
-A message will be a record, with fields for user, host, command, args, trailing args, and the original string message as it was received.
+  A message will be a record, with fields for user, host, command, args, trailing 
+args, and the original string message as it was received.
 
 The current mess of parsing functions should be simplified into 3:
-	* parse-prefix, which will return the username, realname and host as a list. These strings will be empty if there is no prefix.
+	* parse-prefix, which will return the username, realname and host as a list. 
+	  These strings will be empty if there is no prefix.
 	* parse-command, which will return the command as a one element list.
-	* parse-args, which will return a list containing a list of all of the normal arguments of a command as the first element, and the trailing argument (if any) of the command as the second.
+	* parse-args, which will return a list containing a list of all of the normal 
+	  arguments of a command as the first element, and the trailing argument (if any) of the command as the second.
 
 str->msg is then as simple as (apply Message. (concat (parse-prefix msg) ...))
 
@@ -20,9 +23,14 @@ str->msg is then as simple as (apply Message. (concat (parse-prefix msg) ...))
 Aug 1 2011
 
 core.clj:
-The bot-loop thread should be interrupted before the socket is closed.
+  The bot-loop thread should be interrupted before the socket is closed.
 
-Re-examine the way the thread shuts down. What is the best way to close it down from the REPL? with all-done in the finally block, we'll hit all-done twice if we run it from the REPL. Once when you call it yourself, and the again as the bot-loop thread hits an exeption (currently because the socket gets closed while it's waiting for I/O) and runs the finally block. Address this.
+  Re-examine the way the thread shuts down. What is the best way to close it 
+down from the REPL? with all-done in the finally block, we'll hit all-done 
+twice if we run it from the REPL. Once when you call it yourself, and the 
+again as the bot-loop thread hits an exeption (currently because the socket 
+gets closed while it's waiting for I/O) and runs the finally block. 
+Address this.
 
 //=----------------------------------------------------------------------=//
 
@@ -30,11 +38,14 @@ Re-examine the way the thread shuts down. What is the best way to close it down 
 Aug 1 2011
 
 core.clj:
-The user, server, and client-info maps should be moved to their own files and :use'd. They should probably be records instead of maps, too.
+  The user, server, and client-info maps should be moved to their own files and 
+:use'd. They should probably be records instead of maps, too.
 
-What do we want client-info to contain? It shouldn't have channel, as the bot can be in many channels at once. This is best handled inside (def-response "PRIVMSG" ...), where we find the source of the message and reply there. 
+  What do we want client-info to contain? It shouldn't have channel, as the bot 
+can be in many channels at once. This is best handled inside (def-response 
+"PRIVMSG" ...), where we find the source of the message and reply there. 
 
-Connecting to the server should allow you specify a list of channels to join.
+  Connecting to the server should allow you specify a list of channels to join.
 
 (defn connect [conn client-info & channels]
   ...
@@ -47,14 +58,21 @@ Connecting to the server should allow you specify a list of channels to join.
 Aug 1 2011
 
 plugins.clj:
-Implement plugins. This file, when included, should include every file in cljbot/plugins/*. A macro similar to def-response will create a hook in. The bot will have a prefix, say '~', which (def-response "PRIVMSG") will look for. It will then use a multimethod to select the correct hook-in specified by the message.
+  Implement plugins. This file, when included, should include every file in 
+cljbot/plugins/*. A macro similar to def-response will create a hook in. 
+The bot will have a prefix, say '~', which (def-response "PRIVMSG") will look 
+for. It will then use a multimethod to select the correct hook-in specified by 
+the message.
 
 Example: "~foo" will cause plugin "foo" to be run.
 
-Now, the problem with this is that there might not be a convenient syntax for factoids, should they be implemented. Here are two solutions for this:
+  Now, the problem with this is that there might not be a convenient syntax for 
+factoids, should they be implemented. Here are two solutions for this:
 
-1) Write factoids as a plugin. Usage would look like this: "~fact foo" will cause cljbot to respond with the "foo" factoid.
-2) Have a separate prefix for the factoids. That way, "~foo" will call the foo plugin, but "!foo" will respond with the foo factoid.
+    1) Write factoids as a plugin. Usage would look like this: "~fact foo" will 
+       cause cljbot to respond with the "foo" factoid.
+    2) Have a separate prefix for the factoids. That way, "~foo" will call the foo 
+       plugin, but "!foo" will respond with the foo factoid.
 
 Solution #2 is preferred.
 
@@ -64,8 +82,14 @@ Solution #2 is preferred.
 Aug 1 2011
 
 Configuration:
-Eventually, I would like to distribute cljbot as a leiningen uberjar. This means some sort of configuration file will need to be created. For simplicity, some JSON or XML based file would be preferred. 
+  Eventually, I would like to distribute cljbot as a leiningen uberjar. This 
+means some sort of configuration file will need to be created. For simplicity, 
+some JSON or XML based file would be preferred. 
 
-However, distributing as a .jar would create a problem: currently, cljbot is mostly controlled directly via the REPL. distributing as a .jar would mean creating some other interface to the bot - either by packaging the repl and dropping to it inside the app once bot-thread has been launched, or some other mechanism.
+  However, distributing as a .jar would create a problem: currently, cljbot is 
+mostly controlled directly via the REPL. distributing as a .jar would mean 
+creating some other interface to the bot - either by packaging the repl and 
+dropping to it inside the app once bot-thread has been launched, or some other 
+mechanism.
 
 //=----------------------------------------------------------------------=//
